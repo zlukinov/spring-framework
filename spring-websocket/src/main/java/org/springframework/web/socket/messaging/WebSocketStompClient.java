@@ -382,6 +382,8 @@ public class WebSocketStompClient extends StompClientSupport implements SmartLif
 		private volatile long lastReadTime = -1;
 
 		private volatile long lastWriteTime = -1;
+        //5 minutes
+	    private static final long HEARTBEAT_LOG_INTERVAL = 5 * 60 * 1000;
 
 		private final List<ScheduledFuture<?>> inactivityTasks = new ArrayList<>(2);
 
@@ -419,7 +421,18 @@ public class WebSocketStompClient extends StompClientSupport implements SmartLif
 				return;
 			}
 			for (Message<byte[]> message : messages) {
-				this.connectionHandler.handleMessage(message);
+			    StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+                if (SimpMessageType.HEARTBEAT
+                        .equals(accessor.getMessageHeaders().get("simpMessageType", SimpMessageType.class))) {
+                    if (lastReadTime - lastHeartbeatLogTime >= HEARTBEAT_LOG_INTERVAL) {
+                        logger.info("We got a HEARTBEAT message!");
+                        lastHeartbeatLogTime = lastReadTime;
+                    }
+
+                } else {
+                    //We got a regular message
+                    this.connectionHandler.handleMessage(message);
+                }
 			}
 		}
 
