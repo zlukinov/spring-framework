@@ -424,6 +424,7 @@ public class WebSocketStompClient extends StompClientSupport implements SmartLif
 			    StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
                 if (SimpMessageType.HEARTBEAT
                         .equals(accessor.getMessageHeaders().get("simpMessageType", SimpMessageType.class))) {
+					//we got a heartbeat and we loggin it only once per five minutes.
                     if (lastReadTime - lastHeartbeatLogTime >= HEARTBEAT_LOG_INTERVAL) {
                         logger.info("We got a HEARTBEAT message!");
                         lastHeartbeatLogTime = lastReadTime;
@@ -475,6 +476,14 @@ public class WebSocketStompClient extends StompClientSupport implements SmartLif
 			try {
 				WebSocketSession session = this.session;
 				Assert.state(session != null, "No WebSocketSession available");
+				
+                StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+                if (SimpMessageType.HEARTBEAT
+                        .equals(accessor.getMessageHeaders().get("simpMessageType", SimpMessageType.class))) {
+					//now we can see every heartbeat message sent
+                    logger.info("Sending HEARTBEAT message: " + message);
+                }
+				
 				session.sendMessage(this.codec.encode(message, session.getClass()));
 				future.complete(null);
 			}
